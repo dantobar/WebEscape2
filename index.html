@@ -2,56 +2,669 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Escape Room Funcional</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DETOX DEL CORAZÓN — Escape Room</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-body {font-family: Arial; background:#111; color:#eee; text-align:center; padding:40px;}
-.screen {display:none;}
-.active {display:block;}
-button {padding:10px 20px; margin:10px;}
-</style>
-<script>
-function startEscapeRoom(){
-    document.getElementById('landing').classList.remove('active');
-    document.getElementById('room1').classList.add('active');
-}
+:root{--bg:#0a0a0f;--card:#12121a;--pink:#e91e63;--purple:#9c27b0;--blue:#3f51b5;--teal:#009688;--amber:#ff9800;--red:#f44336;--green:#4caf50;--t1:#f5f5f5;--t2:#b0b0c0;--t3:#6a6a80;--gp:rgba(233,30,99,.3);--gpu:rgba(156,39,176,.3)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--t1);min-height:100vh;overflow-x:hidden}
+canvas#pts{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.scr{display:none;position:relative;z-index:1;min-height:100vh}
+.scr.on{display:flex;flex-direction:column;align-items:center;justify-content:center;animation:fi .8s ease-out}
+@keyframes fi{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes tp{from{opacity:.6}to{opacity:1}}
+@keyframes su{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fl{from{transform:translateY(5px)}to{transform:translateY(-5px)}}
+@keyframes ub{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}30%{opacity:1;transform:translate(-50%,-50%) scale(1.2)}70%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.5)}}
 
-function nextRoom(current, next){
-    document.getElementById(current).classList.remove('active');
-    document.getElementById(next).classList.add('active');
+/* PROGRESS & SCORE & NAV */
+.pbar{position:fixed;top:0;left:0;width:100%;height:4px;z-index:1000;background:rgba(255,255,255,.05)}
+.pbar .fill{height:100%;background:linear-gradient(90deg,var(--pink),var(--purple),var(--blue));transition:width .5s;border-radius:0 2px 2px 0}
+.score{position:fixed;top:15px;left:20px;z-index:999;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);padding:8px 16px;border-radius:30px;font-family:'JetBrains Mono',monospace;font-size:.85rem}
+.score .sv{color:var(--green);font-weight:600}
+.rnav{position:fixed;top:15px;right:20px;z-index:999;display:flex;gap:8px}
+.rnav .dot{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);transition:.3s}
+.rnav .dot.act{background:var(--pink);box-shadow:0 0 10px var(--gp)}
+.rnav .dot.done{background:var(--green)}
+
+/* TRANSITION & UNLOCK */
+.trans{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:2000;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px}
+.trans.on{display:flex;animation:fi .3s ease}
+.trans .ti{font-size:4rem;margin-bottom:20px;animation:fl 1s ease-in-out infinite alternate}
+.trans .tt{font-family:'Playfair Display',serif;font-size:2rem;font-weight:700;margin-bottom:15px;background:linear-gradient(135deg,var(--pink),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.trans .tx{color:var(--t2);font-size:1rem;line-height:1.8;max-width:500px}
+.unlock{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:3000;text-align:center}
+.unlock.on{display:block;animation:ub 1.5s ease-out forwards}
+.unlock .ui{font-size:5rem}
+.unlock .ut{font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--green);margin-top:10px}
+
+/* LANDING */
+#landing{background:radial-gradient(ellipse at center,#1a0a1e,#0a0a0f 70%);padding:40px 20px;text-align:center}
+.lcon{max-width:800px;width:100%}
+.hlg{width:120px;height:120px;margin:0 auto 30px;animation:pulse 2s ease-in-out infinite}
+.hlg svg{width:100%;height:100%;filter:drop-shadow(0 0 30px var(--gp)) drop-shadow(0 0 60px var(--gpu))}
+.mtt{font-family:'Playfair Display',serif;font-size:3.2rem;font-weight:900;background:linear-gradient(135deg,var(--pink),var(--purple),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:10px;line-height:1.2}
+.mst{font-family:'JetBrains Mono',monospace;font-size:.9rem;color:var(--t3);letter-spacing:4px;text-transform:uppercase;margin-bottom:50px}
+.tblk{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:20px;padding:40px 35px;margin-bottom:40px;text-align:left}
+.tblk p{font-size:1.1rem;line-height:1.9;color:var(--t2);margin-bottom:20px}
+.tblk p:last-child{margin-bottom:0}
+.hl{color:var(--pink);font-weight:600}
+.hlpu{color:var(--purple);font-weight:600}
+.emp{font-style:italic;color:var(--t1);font-size:1.15rem;display:block;text-align:left;padding:15px 0 15px 20px;border-left:3px solid var(--pink);margin:25px 0}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:40px}
+.rcard{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:15px;padding:20px;text-align:center;transition:.3s}
+.rcard:hover{background:rgba(255,255,255,.06);transform:translateY(-3px)}
+.rcard .icon{font-size:2rem;margin-bottom:10px}
+.rcard .txt{font-size:.85rem;color:var(--t2);line-height:1.5}
+.btn-e{display:inline-flex;align-items:center;gap:12px;background:linear-gradient(135deg,var(--pink),var(--purple));color:#fff;border:none;padding:18px 50px;font-size:1.1rem;font-weight:700;font-family:'Inter',sans-serif;border-radius:60px;cursor:pointer;transition:.4s;text-transform:uppercase;letter-spacing:3px;box-shadow:0 10px 40px var(--gp);overflow:hidden;position:relative}
+.btn-e:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 15px 50px var(--gp)}
+
+/* ROOM COMMON */
+.rscr{padding:30px 20px;width:100%}
+.rhdr{text-align:center;max-width:900px;margin:0 auto 35px;width:100%}
+.rnum{font-family:'JetBrains Mono',monospace;font-size:.75rem;letter-spacing:5px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.rtl{font-family:'Playfair Display',serif;font-size:2.4rem;font-weight:900;margin-bottom:12px;line-height:1.2}
+.rm1 .rtl{color:var(--pink);text-shadow:0 0 30px var(--gp)}
+.rm2 .rtl{color:var(--purple);text-shadow:0 0 30px var(--gpu)}
+.rm3 .rtl{color:var(--teal)}
+.rm4 .rtl{color:var(--amber)}
+.rdesc{font-size:1rem;color:var(--t2);line-height:1.7;max-width:700px;margin:0 auto}
+.rnarr{background:rgba(255,255,255,.03);border-radius:0 12px 12px 0;padding:20px 25px;margin:0 auto 30px;max-width:800px;font-style:italic;color:var(--t2);line-height:1.8}
+.rm1 .rnarr{border-left:3px solid var(--pink)}
+.rm2 .rnarr{border-left:3px solid var(--purple)}
+.rm3 .rnarr{border-left:3px solid var(--teal)}
+.rm4 .rnarr{border-left:3px solid var(--amber)}
+.ccon{max-width:900px;margin:0 auto;width:100%}
+
+/* CHALLENGE */
+.ccard{background:var(--card);border:1px solid rgba(255,255,255,.06);border-radius:20px;padding:35px 30px;margin-bottom:25px;position:relative;overflow:hidden}
+.ccard::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.rm1 .ccard::before{background:linear-gradient(90deg,var(--pink),transparent)}
+.rm2 .ccard::before{background:linear-gradient(90deg,var(--purple),transparent)}
+.rm3 .ccard::before{background:linear-gradient(90deg,var(--teal),transparent)}
+.rm4 .ccard::before{background:linear-gradient(90deg,var(--amber),transparent)}
+.chdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.cbadge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:30px;font-size:.75rem;font-weight:600;letter-spacing:1px;text-transform:uppercase}
+.rm1 .cbadge{background:rgba(233,30,99,.15);color:var(--pink)}
+.rm2 .cbadge{background:rgba(156,39,176,.15);color:var(--purple)}
+.rm3 .cbadge{background:rgba(0,150,136,.15);color:var(--teal)}
+.rm4 .cbadge{background:rgba(255,152,0,.15);color:var(--amber)}
+.ctimer{font-family:'JetBrains Mono',monospace;font-size:1.4rem;font-weight:500;background:rgba(255,255,255,.05);padding:8px 18px;border-radius:12px;min-width:100px;text-align:center}
+.ctimer.warn{color:var(--amber);animation:tp .5s ease-in-out infinite alternate}
+.ctimer.danger{color:var(--red);animation:tp .3s ease-in-out infinite alternate}
+.ctitle{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;margin-bottom:15px}
+.cstory{background:rgba(255,255,255,.02);border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid rgba(255,255,255,.04)}
+.cstory p{font-size:.95rem;line-height:1.8;color:var(--t2);margin-bottom:10px}
+.cstory p:last-child{margin-bottom:0}
+.spk{font-weight:600;color:var(--t1)}
+.dlg{font-style:italic;color:var(--pink)}
+.rm2 .dlg{color:var(--purple)}
+.rm3 .dlg{color:var(--teal)}
+.rm4 .dlg{color:var(--amber)}
+.cq{font-size:1.05rem;font-weight:600;margin-bottom:18px;padding:15px;background:rgba(255,255,255,.03);border-radius:12px;line-height:1.6}
+.cq .ei{font-size:1.3rem;margin-right:8px}
+
+/* OPTIONS */
+.ogrid{display:grid;gap:12px}
+.obtn{display:flex;align-items:flex-start;gap:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px 20px;cursor:pointer;transition:.3s;text-align:left;width:100%;font-family:'Inter',sans-serif;font-size:.95rem;color:var(--t2);line-height:1.6}
+.obtn:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15);transform:translateX(5px)}
+.olet{flex-shrink:0;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:8px;font-weight:700;font-size:.8rem;background:rgba(255,255,255,.05);color:var(--t3)}
+.obtn.sel{border-color:var(--pink);background:rgba(233,30,99,.1)}
+.obtn.ok{border-color:var(--green);background:rgba(76,175,80,.15);color:var(--t1)}
+.obtn.ok .olet{background:var(--green);color:#fff}
+.obtn.no{border-color:var(--red);background:rgba(244,67,54,.1);opacity:.7}
+.obtn.no .olet{background:var(--red);color:#fff}
+.obtn.dis{pointer-events:none}
+
+/* SORTING */
+.scols{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:15px}
+.scol{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:15px;min-height:180px}
+.scolt{font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.06);text-align:center}
+.cfact .scolt{color:var(--green)}.cinterp .scolt{color:var(--red)}.cexc .scolt{color:var(--amber)}.ctruth .scolt{color:var(--teal)}
+.sdrop{min-height:100px;display:flex;flex-direction:column;gap:8px}
+.sitem{padding:10px 15px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:.85rem;color:var(--t2);cursor:grab;transition:.2s;user-select:none}
+.sitem:active{cursor:grabbing}
+.sitem.oks{border-color:var(--green);background:rgba(76,175,80,.1)}
+.sitem.nos{border-color:var(--red);background:rgba(244,67,54,.1)}
+
+/* DRAG DROP */
+.ditems{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;padding:15px;background:rgba(255,255,255,.02);border-radius:12px;min-height:60px;justify-content:center}
+.ditem{padding:10px 18px;border-radius:10px;cursor:grab;font-size:.88rem;font-weight:500;transition:.2s;user-select:none;border:1px solid rgba(255,255,255,.1)}
+.ditem:active{cursor:grabbing;transform:scale(1.05)}
+.ditem.dpink{background:rgba(233,30,99,.2);color:var(--pink)}
+.ditem.dpurple{background:rgba(156,39,176,.2);color:var(--purple)}
+.ditem.dteal{background:rgba(0,150,136,.2);color:var(--teal)}
+.ditem.damber{background:rgba(255,152,0,.2);color:var(--amber)}
+.ditem.dblue{background:rgba(63,81,181,.2);color:var(--blue)}
+.ditem.placed{opacity:.3;cursor:default}
+.dzcon{display:grid;gap:12px}
+.dzrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.dzlabel{font-size:.9rem;color:var(--t2);min-width:200px;line-height:1.5}
+.dzone{min-width:160px;min-height:44px;border:2px dashed rgba(255,255,255,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;padding:8px 15px;transition:.3s;font-size:.85rem;color:var(--t3);flex:1}
+.dzone.dov{border-color:var(--pink);background:rgba(233,30,99,.05)}
+.dzone.filled{border-style:solid;border-color:rgba(255,255,255,.15);color:var(--t1);font-weight:500}
+.dzone.okz{border-color:var(--green);background:rgba(76,175,80,.1)}
+.dzone.noz{border-color:var(--red);background:rgba(244,67,54,.1)}
+
+/* SCALES */
+.scon{margin-bottom:25px}
+.slabels{display:flex;justify-content:space-between;margin-bottom:8px;font-size:.8rem;color:var(--t3)}
+.sslider{width:100%;-webkit-appearance:none;height:8px;border-radius:4px;background:rgba(255,255,255,.1);outline:none}
+.sslider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:var(--teal);cursor:pointer;box-shadow:0 0 15px rgba(0,150,136,.3)}
+.sval{text-align:center;font-family:'JetBrains Mono',monospace;font-size:1.5rem;margin-top:10px;color:var(--teal)}
+
+/* TEXT INPUT */
+.tinput{width:100%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:16px 20px;color:var(--t1);font-family:'Inter',sans-serif;font-size:1rem;outline:none;transition:.3s;resize:vertical;min-height:70px}
+.tinput:focus{border-color:var(--pink);box-shadow:0 0 20px var(--gp)}
+.tinput::placeholder{color:var(--t3)}
+
+/* REVEAL CARDS */
+.rvcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin:15px 0}
+.rvcard{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:20px 15px;text-align:center;cursor:pointer;transition:.4s;min-height:90px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.rvcard:hover{transform:translateY(-3px);background:rgba(255,255,255,.06)}
+.rvcard .cf{font-size:2rem}
+.rvcard .cb{display:none;font-size:.82rem;color:var(--t2);line-height:1.5}
+.rvcard.flip .cf{display:none}
+.rvcard.flip .cb{display:block}
+.rvcard.flip{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15)}
+
+/* LOCK CODE */
+.lcc{display:flex;align-items:center;justify-content:center;gap:15px;margin:20px 0}
+.cdig{width:60px;height:70px;background:rgba(255,255,255,.05);border:2px solid rgba(255,255,255,.1);border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:2rem;cursor:pointer;transition:.3s;user-select:none}
+.cdig:hover{border-color:var(--pink);background:rgba(233,30,99,.05)}
+.cdig.okd{border-color:var(--green);background:rgba(76,175,80,.1);color:var(--green)}
+
+/* FEEDBACK */
+.fb{display:none;margin-top:20px;padding:20px 25px;border-radius:14px;animation:su .4s ease-out}
+.fb.show{display:block}
+.fb.fbs{background:rgba(76,175,80,.1);border:1px solid rgba(76,175,80,.3)}
+.fb.fbp{background:rgba(255,152,0,.1);border:1px solid rgba(255,152,0,.3)}
+.fb.fbf{background:rgba(244,67,54,.1);border:1px solid rgba(244,67,54,.3)}
+.fb .fbt{font-weight:700;font-size:1.1rem;margin-bottom:8px}
+.fb.fbs .fbt{color:var(--green)}.fb.fbp .fbt{color:var(--amber)}.fb.fbf .fbt{color:var(--red)}
+.fb .fbx{font-size:.95rem;color:var(--t2);line-height:1.7}
+
+/* BUTTONS */
+.btnc{display:flex;gap:12px;margin-top:20px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:13px 30px;border-radius:12px;font-family:'Inter',sans-serif;font-size:.9rem;font-weight:600;cursor:pointer;transition:.3s;border:none;text-transform:uppercase;letter-spacing:1px}
+.btn-sub{background:linear-gradient(135deg,var(--pink),var(--purple));color:#fff;box-shadow:0 5px 20px var(--gp)}
+.btn-sub:hover{transform:translateY(-2px);box-shadow:0 8px 30px var(--gp)}
+.btn-tm{background:rgba(255,255,255,.05);color:var(--t2);border:1px solid rgba(255,255,255,.1);padding:10px 24px;border-radius:10px;font-family:'Inter',sans-serif;font-size:.85rem;cursor:pointer}
+.btn-tm:hover{background:rgba(255,255,255,.1)}
+
+/* COUPLE DISCUSSION */
+.disc{background:linear-gradient(135deg,rgba(233,30,99,.05),rgba(156,39,176,.05));border:1px solid rgba(233,30,99,.15);border-radius:16px;padding:20px 25px;margin-top:18px}
+.disc .dl{display:inline-flex;align-items:center;gap:6px;font-size:.75rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--pink);margin-bottom:10px}
+.disc .dp{font-size:.95rem;color:var(--t2);line-height:1.7;font-style:italic}
+
+/* FINAL */
+#final{background:radial-gradient(ellipse at center,#0a1a0f,#0a0a0f 70%);padding:40px 20px;text-align:center}
+.fcon{max-width:700px}
+.fheart{font-size:5rem;margin-bottom:20px;animation:pulse 1.5s ease infinite}
+.ftitle{font-family:'Playfair Display',serif;font-size:2.8rem;font-weight:900;background:linear-gradient(135deg,var(--green),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:20px}
+.fscore{font-family:'JetBrains Mono',monospace;font-size:3rem;font-weight:700;color:var(--green);margin-bottom:10px}
+.fsl{font-size:.85rem;color:var(--t3);letter-spacing:3px;text-transform:uppercase;margin-bottom:30px}
+.fmsg{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:20px;padding:30px;margin-bottom:30px}
+.fmsg p{font-size:1.1rem;line-height:1.9;color:var(--t2);margin-bottom:15px}
+.fmsg p:last-child{margin-bottom:0}
+.hlf{color:var(--green);font-weight:600}
+.btn-re{display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,var(--green),var(--teal));color:#fff;border:none;padding:16px 40px;font-size:1rem;font-weight:700;font-family:'Inter',sans-serif;border-radius:50px;cursor:pointer;transition:.3s;text-transform:uppercase;letter-spacing:2px}
+.btn-re:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(0,150,136,.3)}
+
+/* SUB */
+.subq{margin-bottom:20px;padding:15px;background:rgba(255,255,255,.02);border-radius:12px}
+.subq .sql{color:var(--t1);margin-bottom:10px;font-weight:600}
+.subq .sqi{color:var(--t2);font-style:italic;margin-bottom:12px}
+
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
+
+@media(max-width:768px){
+.mtt{font-size:2.2rem}.mst{font-size:.7rem;letter-spacing:2px}
+.tblk{padding:25px 20px}.rtl{font-size:1.8rem}.ccard{padding:25px 20px}
+.scols{grid-template-columns:1fr}.dzrow{flex-direction:column;align-items:stretch}.dzlabel{min-width:auto}
+.rvcards{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}
 }
-</script>
+</style>
 </head>
 <body>
+<canvas id="pts"></canvas>
 
-<div id="landing" class="screen active">
-<h1>Detox del Corazón</h1>
-<p>Si eres honesto... el camino aparecerá.</p>
-<button onclick="startEscapeRoom()">Iniciar</button>
+<!-- GLOBAL UI -->
+<div class="pbar" id="pbar" style="display:none"><div class="fill" id="pfill" style="width:0%"></div></div>
+<div class="score" id="scoreUI" style="display:none"><span>💎</span><span class="sv" id="sv">0</span><span style="color:var(--t3)">pts</span></div>
+<div class="rnav" id="rnav" style="display:none"><div class="dot" data-r="1"></div><div class="dot" data-r="2"></div><div class="dot" data-r="3"></div><div class="dot" data-r="4"></div></div>
+<div class="unlock" id="unlock"><div class="ui">🔓</div><div class="ut">Sala Desbloqueada</div></div>
+<div class="trans" id="trans"><div class="ti" id="ticon">🚪</div><div class="tt" id="ttitle"></div><div class="tx" id="ttext"></div></div>
+
+<!-- =============== LANDING =============== -->
+<div class="scr on" id="landing">
+<div class="lcon">
+<div class="hlg"><svg viewBox="0 0 100 100"><defs><linearGradient id="hg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#e91e63"/><stop offset="50%" style="stop-color:#9c27b0"/><stop offset="100%" style="stop-color:#3f51b5"/></linearGradient></defs><path d="M50 88C25 65 5 50 5 30 5 15 18 5 30 5c8 0 15 5 20 13 5-8 12-13 20-13 12 0 25 10 25 25 0 20-20 35-45 58Z" fill="url(#hg)" opacity=".9"/><circle cx="35" cy="35" r="4" fill="rgba(0,0,0,.3)" opacity=".6"><animate attributeName="opacity" values=".3;.7;.3" dur="3s" repeatCount="indefinite"/></circle><circle cx="60" cy="40" r="3" fill="rgba(0,0,0,.3)" opacity=".5"><animate attributeName="opacity" values=".5;.8;.5" dur="2.5s" repeatCount="indefinite"/></circle></svg></div>
+<h1 class="mtt">Detox del Corazón</h1>
+<p class="mst">Escape Room Virtual</p>
+<div class="tblk">
+<p>Hoy entras a un espacio diferente.</p>
+<p>No estás aquí porque hiciste algo mal... sino porque, como todos, <span class="hl">tu corazón a veces se intoxica.</span></p>
+<p>La intoxicación no se nota por fuera. Se esconde en lo que no dices, en lo que evitas reconocer, en esas historias que tu mente repite pero nunca confiesas en voz alta.</p>
+<span class="emp">Algo dentro de ti se ha intoxicado. No está afuera... está en la forma en que interpretas, reaccionas y escondes en tu cabecita lo que piensas y sientes.</span>
+<p>Este lugar no responde a la perfección... <span class="hlpu">responde a la verdad.</span></p>
+<p>Si intentas aparentar, el sistema no abrirá.<br>Si eres honesto... <span class="hl">el camino aparecerá.</span></p>
+</div>
+<div class="rgrid">
+<div class="rcard"><div class="icon">⏱️</div><div class="txt">Cada acertijo tiene tiempo límite. Piensa con el corazón.</div></div>
+<div class="rcard"><div class="icon">💑</div><div class="txt">Juega en pareja. Después de cada acertijo, conversen.</div></div>
+<div class="rcard"><div class="icon">🔓</div><div class="txt">4 salas · 12 acertijos. Un objetivo: ser honesto.</div></div>
+<div class="rcard"><div class="icon">🧪</div><div class="txt">No hay respuestas perfectas. Hay respuestas honestas.</div></div>
+</div>
+<button class="btn-e" onclick="startGame()">🫀 Iniciar el Detox →</button>
+</div>
 </div>
 
-<div id="room1" class="screen">
-<h2>Sala 1: Archivo Oculto</h2>
-<p>"Nunca me escucha" → ¿Hecho o interpretación?</p>
-<button onclick="nextRoom('room1','room2')">Siguiente</button>
+<!-- =============== ROOM 1: ARCHIVO OCULTO =============== -->
+<div class="scr rscr rm1" id="room1">
+<div class="rhdr">
+<div class="rnum">Sala 01 de 04</div>
+<h2 class="rtl">🗂️ Archivo Oculto</h2>
+<p class="rdesc">Aquí aprenderás a distinguir entre <strong>lo que realmente pasó</strong> y <strong>la historia que te contaste</strong>.</p>
+</div>
+<div class="rnarr"><p>Has entrado a una habitación llena de archivadores. Algunos dicen "HECHOS", otros "LO QUE YO INTERPRETÉ". Alguien los mezcló. Tu trabajo: separarlos.</p></div>
+<div class="ccon">
+
+<!-- R1C1 -->
+<div class="ccard" id="r1c1">
+<div class="chdr"><span class="cbadge">🧩 Acertijo 1 de 3</span><div class="ctimer" id="tm-r1c1">⏱ 04:00</div></div>
+<h3 class="ctitle">El Mensaje Sin Respuesta</h3>
+<div class="cstory">
+<p>Mariana le envió un mensaje a David a las 10:15 a.m.: <span class="dlg">"Oye, ¿podemos hablar de algo que me está dando vueltas?"</span></p>
+<p>David lo leyó (palomitas azules) a las 10:17. No respondió. A las 12:30, Mariana ya piensa: <span class="dlg">"Seguro está enojado. Siempre le vale lo que siento. No le importo."</span></p>
+<p>Cuando David llama a la 1:00 p.m., ella contesta fría: <span class="dlg">"No, nada. Olvídalo."</span></p>
+</div>
+<div class="cq"><span class="ei">🔍</span> Clasifica cada frase: ¿HECHO o INTERPRETACIÓN? Arrastra a la columna correcta.</div>
+<div class="ditems" id="src-r1c1">
+<div class="sitem" draggable="true" data-id="a" data-ans="fact">"David leyó el mensaje a las 10:17 a.m."</div>
+<div class="sitem" draggable="true" data-id="b" data-ans="interp">"Siempre le vale lo que siento"</div>
+<div class="sitem" draggable="true" data-id="c" data-ans="fact">"No respondió entre 10:17 y 12:30"</div>
+<div class="sitem" draggable="true" data-id="d" data-ans="interp">"Seguro está enojado conmigo"</div>
+<div class="sitem" draggable="true" data-id="e" data-ans="interp">"No le importo"</div>
+<div class="sitem" draggable="true" data-id="f" data-ans="fact">"David la llamó a la 1:00 p.m."</div>
+</div>
+<div class="scols">
+<div class="scol cfact"><div class="scolt">✅ Hechos</div><div class="sdrop" data-col="fact"></div></div>
+<div class="scol cinterp"><div class="scolt">🧠 Interpretaciones</div><div class="sdrop" data-col="interp"></div></div>
+</div>
+<div class="btnc"><button class="btn btn-tm" onclick="startTm('r1c1',240)">▶ Iniciar Tiempo</button><button class="btn btn-sub" onclick="checkSort('r1c1')">Verificar</button></div>
+<div class="fb" id="fb-r1c1"></div>
+<div class="disc" style="display:none" id="ds-r1c1"><div class="dl">💑 Conversen en pareja</div><p class="dp">¿Cuántas veces construyeron una historia completa antes de preguntar? Compartan un ejemplo.</p></div>
 </div>
 
-<div id="room2" class="screen">
-<h2>Sala 2: Versus</h2>
-<p>¿Lo que dijiste es igual a lo que sentiste?</p>
-<button onclick="nextRoom('room2','room3')">Siguiente</button>
+<!-- R1C2 -->
+<div class="ccard" id="r1c2" style="display:none">
+<div class="chdr"><span class="cbadge">🧩 Acertijo 2 de 3</span><div class="ctimer" id="tm-r1c2">⏱ 04:00</div></div>
+<h3 class="ctitle">La Cena que Nunca se Dijo</h3>
+<div class="cstory">
+<p>Andrés llegó a las 9:40 p.m. Lucía cocinó desde las 7. Comida fría. Él la ve en el sofá con el celular.</p>
+<p><span class="spk">Andrés pensó:</span> <span class="dlg">"Está brava. Ley del hielo."</span></p>
+<p><span class="spk">Lucía pensó:</span> <span class="dlg">"No le importó avisarme. Soy su última prioridad."</span></p>
+<p><span class="spk">Realidad:</span> Andrés tuvo reunión de emergencia sin celular. Lucía estaba cansada.</p>
+</div>
+<div class="cq"><span class="ei">🔐</span> ¿Cuántos pensamientos de Andrés y Lucía son hechos verificables? (clic para cambiar)</div>
+<div class="lcc"><div class="cdig" id="r1c2d" onclick="cycDig(this,6)">0</div></div>
+<p style="text-align:center;color:var(--t3);font-size:.8rem;margin-bottom:15px">Rango: 0–6</p>
+<div class="cq"><span class="ei">💡</span> ¿Qué intoxicó la noche de ambos?</div>
+<div class="ogrid" id="og-r1c2">
+<button class="obtn" data-ok="0" onclick="selOpt(this,'r1c2')"><span class="olet">A</span><span>Que Andrés llegó tarde</span></button>
+<button class="obtn" data-ok="0" onclick="selOpt(this,'r1c2')"><span class="olet">B</span><span>Que Lucía se sentó en el sofá</span></button>
+<button class="obtn" data-ok="1" onclick="selOpt(this,'r1c2')"><span class="olet">C</span><span>Que ambos interpretaron la intención del otro sin verificar</span></button>
+<button class="obtn" data-ok="0" onclick="selOpt(this,'r1c2')"><span class="olet">D</span><span>Que la comida se enfrió</span></button>
+</div>
+<div class="btnc"><button class="btn btn-tm" onclick="startTm('r1c2',240)">▶ Iniciar Tiempo</button><button class="btn btn-sub" onclick="checkR1C2()">Verificar</button></div>
+<div class="fb" id="fb-r1c2"></div>
+<div class="disc" style="display:none" id="ds-r1c2"><div class="dl">💑 Conversen en pareja</div><p class="dp">¿Se enojaron alguna vez por lo que creyeron que el otro pensaba... y estaban equivocados?</p></div>
 </div>
 
-<div id="room3" class="screen">
-<h2>Sala 3: Emociones</h2>
-<p>Identifica: orgullo, miedo, enojo...</p>
-<button onclick="nextRoom('room3','room4')">Siguiente</button>
+<!-- R1C3 -->
+<div class="ccard" id="r1c3" style="display:none">
+<div class="chdr"><span class="cbadge">🧩 Acertijo 3 de 3</span><div class="ctimer" id="tm-r1c3">⏱ 04:00</div></div>
+<h3 class="ctitle">El Detector de Suposiciones</h3>
+<div class="cstory"><p>Identifica la suposición oculta que contamina cada pensamiento.</p></div>
+<div class="subq"><p class="sql">Pensamiento 1:</p><p class="sqi">"Mi pareja ya no me abraza como antes. Ya no me quiere igual."</p>
+<div class="ogrid"><button class="obtn" data-ok="0" data-g="r1c3a" onclick="selOpt(this,'r1c3a')"><span class="olet">A</span><span>"mi pareja no me abraza"</span></button><button class="obtn" data-ok="1" data-g="r1c3a" onclick="selOpt(this,'r1c3a')"><span class="olet">B</span><span>"ya no me quiere igual" — asociar menos abrazos con menos amor</span></button><button class="obtn" data-ok="0" data-g="r1c3a" onclick="selOpt(this,'r1c3a')"><span class="olet">C</span><span>"como antes"</span></button></div></div>
+<div class="subq"><p class="sql">Pensamiento 2:</p><p class="sqi">"Solo dijo 'qué mal'. No le importa lo que siento."</p>
+<div class="ogrid"><button class="obtn" data-ok="0" data-g="r1c3b" onclick="selOpt(this,'r1c3b')"><span class="olet">A</span><span>"solo dijo 'qué mal'"</span></button><button class="obtn" data-ok="0" data-g="r1c3b" onclick="selOpt(this,'r1c3b')"><span class="olet">B</span><span>"le conté lo que me pasó"</span></button><button class="obtn" data-ok="1" data-g="r1c3b" onclick="selOpt(this,'r1c3b')"><span class="olet">C</span><span>"no le importa" — asumir intención por una respuesta corta</span></button></div></div>
+<div class="subq"><p class="sql">Pensamiento 3:</p><p class="sqi">"No me invitó a la reunión con sus amigos. Tiene vergüenza de mí."</p>
+<div class="ogrid"><button class="obtn" data-ok="1" data-g="r1c3c" onclick="selOpt(this,'r1c3c')"><span class="olet">A</span><span>"tiene vergüenza de mí" — inventar causa sin evidencia</span></button><button class="obtn" data-ok="0" data-g="r1c3c" onclick="selOpt(this,'r1c3c')"><span class="olet">B</span><span>"no me invitó"</span></button><button class="obtn" data-ok="0" data-g="r1c3c" onclick="selOpt(this,'r1c3c')"><span class="olet">C</span><span>"reunión con sus amigos"</span></button></div></div>
+<div class="btnc"><button class="btn btn-tm" onclick="startTm('r1c3',240)">▶ Iniciar Tiempo</button><button class="btn btn-sub" onclick="checkMulti('r1c3',['r1c3a','r1c3b','r1c3c'])">Verificar</button></div>
+<div class="fb" id="fb-r1c3"></div>
+<div class="disc" style="display:none" id="ds-r1c3"><div class="dl">💑 Conversen en pareja</div><p class="dp">¿Cuál patrón se parece más a algo que ustedes hacen? Sin juzgar, solo reconocer.</p></div>
 </div>
 
-<div id="room4" class="screen">
-<h2>Sala 4: Rompiendo excusas</h2>
-<p>"No fue para tanto" → ¿verdad o excusa?</p>
-<h3>Fin 🎉</h3>
+<div id="nx-r1" style="display:none;text-align:center;margin:30px 0"><button class="btn-e" onclick="goRoom(2)">🚪 Abrir Sala 2: Versus →</button></div>
+</div></div>
+
+<!-- =============== ROOM 2: VERSUS =============== -->
+<div class="scr rscr rm2" id="room2">
+<div class="rhdr">
+<div class="rnum">Sala 02 de 04</div>
+<h2 class="rtl">⚔️ Versus</h2>
+<p class="rdesc">Lo que dices vs. lo que sientes vs. lo que piensas. Tres versiones que casi nunca coinciden.</p>
+</div>
+<div class="rnarr"><p>Sala de espejos. Pero no reflejan tu rostro... reflejan tus palabras, emociones y pensamientos. Para avanzar, identifica cuál espejo muestra qué.</p></div>
+<div class="ccon">
+
+<!-- R2C1 -->
+<div class="ccard" id="r2c1">
+<div class="chdr"><span class="cbadge">🧩 Acertijo 1 de 3</span><div class="ctimer" id="tm-r2c1">⏱ 04:00</div></div>
+<h3 class="ctitle">Los Tres Espejos</h3>
+<div class="cstory">
+<p>Javier hizo planes con amigos sin consultar a Camila.</p>
+<p><span class="spk">Camila DIJO:</span> <span class="dlg">"Ah, ok. Pásatela bien."</span></p>
+<p><span class="spk">SINTIÓ:</span> Decepción, tristeza, no ser prioridad.</p>
+<p><span class="spk">PENSÓ:</span> <span class="dlg">"Nunca me tiene en cuenta. Siempre prefiere a sus amigos."</span></p>
+</div>
+<div class="cq"><span class="ei">🪞</span> ¿Cuál espejo es el más honesto?</div>
+<div class="ogrid" id="og-r2c1">
+<button class="obtn" data-ok="0" onclick="selOpt(this,'r2c1')"><span class="olet">A</span><span><b>Lo que DIJO</b> — lo expresó en voz alta</span></button>
+<button class="obtn" data-ok="1" onclick="selOpt(this,'r2c1')"><span class="olet">B</span><span><b>Lo que SINTIÓ</b> — las emociones son la señal real antes de que la mente las edite</span></button>
+<button class="obtn" data-ok="0" onclick="selOpt(this,'r2c1')"><span class="olet">C</span><span><b>Lo que PENSÓ</b> — son sus pensamientos reales</span></button>
+<button class="obtn" data-ok="0" onclick="selOpt(this,'r2c1')"><span class="olet">D</span><span>Los tres son igualmente honestos</span></button>
+</div>
+<div class="btnc"><button class="btn btn-tm" onclick="startTm('r2c1',240)">▶ Iniciar Tiempo</button><button class="btn btn-sub" onclick="checkSingle('r2c1','Las emociones son la señal más cruda. Los pensamientos ya son interpretación. Las palabras ya son edición. Esa punzada en el pecho no miente.')">Verificar</button></div>
+<div class="fb" id="fb-r2c1"></div>
+<div class="disc" style="display:none" id="ds-r2c1"><div class="dl">💑 Conversen en pareja</div><p class="dp">Piensen en su última discusión. ¿Pueden identificar las 3 capas? Compartan una diferencia.</p></div>
 </div>
 
+<!-- R2C2 -->
+<div class="ccard" id="r2c2" style="display:none">
+<div class="chdr"><span class="cbadge">🧩 Acertijo 2 de 3</span><div class="ctimer" id="tm-r2c2">⏱ 04:00</div></div>
+<h3 class="ctitle">El Traductor Roto</h3>
+<div class="cstory"><p>Tu "traductor emocional" convierte lo que sientes en lo que dices. Muchas veces traduce mal. Empareja cada frase con la emoción real que esconde.</p></div>
+<div class="cq"><span class="ei">🔧</span> Arrastra cada emoción hacia la frase que la esconde.</div>
+<div class="ditems" id="di-r2c2">
+<div class="ditem dpurple" draggable="true" data-match="dz-r2c2-1">Miedo al rechazo</div>
+<div class="ditem dpink" draggable="true" data-match="dz-r2c2-2">Soledad / necesidad de conexión</div>
+<div class="ditem dteal" draggable="true" data-match="dz-r2c2-3">Impotencia y frustración</div>
+<div class="ditem damber" draggable="true" data-match="dz-r2c2-4">Inseguridad profunda</div>
+<div class="ditem dblue" draggable="true" data-match="dz-r2c2-5">Dolor por sentirse ignorado/a</div>
+</div>
+<div class="dzcon">
+<div class="dzrow"><span class="dzlabel">"No me importa lo que hagas" →</span><div class="dzone" id="dz-r2c2-1">Arrastra aquí</div></div>
+<div class="dzrow"><span class="dzlabel">"Estoy bien, no pasa nada" →</span><div class="dzone" id="dz-r2c2-2">Arrastra aquí</div></div>
+<div class="dzrow"><span class="dzlabel">"Haz lo que quieras" →</span><div class="dzone" id="dz-r2c2-3">Arrastra aquí</div></div>
+<div class="dzrow"><span class="dzlabel">"¿Con quién hablabas?" →</span><div class="dzone" id="dz-r2c2-4">Arrastra aquí</div></div>
+<div class="dzrow"><span class="dzlabel">"Ya ni para qué te cuento" →</span><div class="dzone" id="dz-r2c2-5">Arrastra aquí</div></div>
+</div>
+<div class="btnc"><button class="btn btn-tm" onclick="startTm('r2c2',240)">▶ Iniciar Tiempo</button><button class="btn btn-sub" onclick="checkDD('r2c2')">Verificar</button></div>
+<div class="fb" id="fb-r2c2"></div>
+<div class="disc" style="display:none" id="ds-r2c2"><div class="dl">💑 Conversen en pareja</div><p class="dp">¿Cuál de estas frases han usado? Digan: "Cuando digo [frase], lo que realmente siento es..."</p></div>
+</div>
+
+<!-- R2C3 -->
+<div class="ccard" id="r2c3" style="display:none">
+<div class="chdr"><span class="cbadge">🧩 Acertijo 3 de 3</span><div class="ctimer" id="tm-r2c3">⏱ 04:00</div></div>
+<h3 class="ctitle">El Guion Secreto</h3>
+<div class="cstory">
+<p><b>Escena:</b> Tu pareja dice: <span class="dlg">"Siento que últimamente estás distante."</span></p>
+<p><b>Versión A:</b> <span class="dlg">"¿Distante? Si estoy aquí todos los días. Nada es suficiente."</span></p>
+<p><b>Versión B:</b> <span class="dlg">"Tienes razón... he estado en mis cosas y no me di cuenta. Me da miedo no saber manejar lo que siento."</span></p>
+</div>
+<div class="subq"><p class="sql">¿Qué esconde la Versión A?</p>
+<div class="ogrid"><button class="obtn" data-ok="0" data-g="r2c3a" onclick="selOpt(this,'r2c3a')"><span class="olet">A</span><span>Alegría disfrazada</span></button><button class="obtn" data-ok="1" data-g="r2c3a" onclick="selOpt(this,'r2c3a')"><span class="olet">B</span><span>Culpa y miedo a ser señalado como insuficiente</span></button><button class="obtn" data-ok="0" data-g="r2c3a" onclick="selOpt(this,'r2c3a')"><span class="olet">C</span><span>Indiferencia total</span></button></div></div>
+<div class="subq"><p class="sql">¿Por qué la Versión B es más "limpia"?</p>
+<div class="ogrid"><button class="obtn" data-ok="0" data-g="r2c3b" onclick="selOpt(this,'r2c3b')"><span class="olet">A</span><span>Es más educada</span></button><button class="obtn" data-ok="0" data-g="r2c3b" onclick="selOpt(this,'r2c3b')"><span class="olet">B</span><span>Le da la razón para evitar conflicto</span></button><button class="obtn" data-ok="1" data-g="r2c3b" onclick="selOpt(this,'r2c3b')"><span class="olet">C</span><span>Reconoce lo que pasa sin atacar ni defenderse</span></button></div></div>
+<div class="subq"><p class="sql">¿Cuál usarías instintivamente? (cualquier respuesta honesta vale)</p>
+<div class="ogrid"><button class="obtn" data-ok="1" data-g="r2c3c" onclick="selOpt(this,'r2c3c')"><span class="olet">A</span><span>Versión A — defiendo primero</span></button><button class="obtn" data-ok="1" data-g="r2c3c" onclick="selOpt(this,'r2c3c')"><span class="olet">B</span><span>Versión B — puedo ser vulnerable</span></button><button class="obtn" data-ok="1" data-g="r2c3c" onclick="selOpt(this,'r2c3c')"><span class="olet">C</span><span>Ninguna — me quedo callado/a</span></button></div></div>
+<div class="btnc"><button class="btn btn-tm" onclick="startTm('r2c3',240)">▶ Iniciar Tiempo</button><button class="btn btn-sub" onclick="checkMulti('r2c3',['r2c3a','r2c3b','r2c3c'])">Verificar</button></div>
+<div class="fb" id="fb-r2c3"></div>
+<div class="disc" style="display:none" id="ds-r2c3"><div class="dl">💑 Conversen en pareja</div><p class="dp">Mírense a los ojos. Uno diga: "Cuando me siento cuestionado/a, mi primer instinto es..." El otro escuche. Luego cambien.</p></div>
+</div>
+
+<div id="nx-r2" style="display:none;text-align:center;margin:30px 0"><button class="btn-e" onclick="goRoom(3)">🚪 Abrir Sala 3: Lo que no te gusta admitir →</button></div>
+</div></div>
+
+<!-- =============== ROOM 3: LO QUE NO TE GUSTA ADMITIR =============== -->
+<div class="scr rscr rm3" id="room3">
+<div class="rhdr">
+<div class="rnum">Sala 03 de 04</div>
+<h2 class="rtl">🪞 Lo Que No Te Gusta Admitir</h2>
+<p class="rdesc">Orgullo, miedo, envidia, inseguridad, enojo. La pregunta no es si los tienes... es si puedes <strong>nombrarlos</strong>.</p>
+</div>
+<div class="rnarr"><p>Sala oscura. Un espejo con luz tenue. Muestra emociones que reconoces en otros pero te cuesta ver en ti. Cada emoción nombrada enciende una luz.</p></div>
+<div class="ccon">
+
+<!-- R3C1 -->
+<div class="ccard" id="r3c1">
+<div class="chdr"><span class="cbadge">🧩 Acertijo 1 de 3</span><div class="ctimer" id="tm-r3c1">⏱ 04:00</div></div>
+<h3 class="ctitle">Las Cinco Sombras</h3>
+<div class="cstory"><p>Cada emoción se disfraza. Voltea las cartas y luego empareja cada emoción con su disfraz.</p></div>
+<div class="rvcards">
+<div class="rvcard" onclick="this.classList.toggle('flip')"><div class="cf">😤</div><div class="cb"><b>ORGULLO</b></div></div>
+<div class="rvcard" onclick="this.classList.toggle('flip')"><div class="cf">😰</div><div class="cb"><b>MIEDO</b></div></div>
+<div class="rvcard" onclick="this.classList.toggle('flip')"><div class="cf">😒</div><div class="cb"><b>ENVIDIA</b></div></div>
+<div class="rvcard" onclick="this.classList.toggle('flip')"><div class="cf">😶</div><div class="cb"><b>INSEGURIDAD</b></div></div>
+<div class="rvcard" onclick="this.classList.toggle('flip')"><div class="cf">🔥</div><div class="cb"><b>ENOJO</b></div></div>
+</div>
+<div class="ditems" id="di-r3c1">
+<div class="ditem dteal" draggable="true" data-match="dz-r3c1-1">Silencio castigador</div>
+<div class="ditem dpink" draggable="true" data-match="dz-r3c1-2">Control excesivo / Evitar cosas nuevas</div>
+<div class="ditem dpurple" draggable="true" data-match="dz-r3c1-3">Criticar logros del otro</div>
+<div class="ditem damber" draggable="true" data-match="dz-r3c1-4">Celos / Comparación constante</div>
+<div class="ditem dblue" draggable="true" data-match="dz-r3c1-5">Sarcasmo / "No me pasa nada" con rabia</div>
+</div>
+<div class="dzcon">
+<div class="dzrow"><span class="dzlabel">😤 Orgullo →</span><div class="dzone" id="dz-r3c1-1">Arrastra aquí</div></div>
+<div class="dzrow"><span class="dzlabel">😰 Miedo →</span><div class="dzone" id="dz-r3c1-2">Arrastra aquí</div></div>
+<div class="dzrow"><span class="dzlabel">😒 Envidia →</span><div class="dzone" id="dz-r3c1-3">Arrastra aquí</div></div>
+<div class="dzrow"><span class="dzlabel">😶 Inseguridad →</span><div class="dzone" id="dz-r3c1-4">Arrastra aquí</div></div>
+<div class="dzrow"><span class="dzlabel">🔥 Enojo →</span><div class="dzone" id="dz-r3c1-5">Arrastra aquí</div></div>
+</div>
+<div class="btnc"><button class="btn btn-tm" onclick="startTm('r3c1',240)">▶ Iniciar Tiempo</button><button class="btn btn-sub" onclick="checkDD('r3c1')">Verificar</button></div>
+<div class="fb" id="fb-r3c1"></div>
+<div class="disc" style="display:none" id="ds-r3c1"><div class="dl">💑 Conversen en pareja</div><p class="dp">Escojan UNA sombra y digan: "Yo a veces disfrazo mi [emoción] de [comportamiento]."</p></div>
+</div>
+
+<!-- R3C2 -->
+<div class="ccard" id="r3c2" style="display:none">
+<div class="chdr"><span class="cbadge">🧩 Acertijo 2 de 3</span><div class="ctimer" id="tm-r3c2">⏱ 04:00</div></div>
+<h3 class="ctitle">El Termómetro Emocional</h3>
+<div class="cstory"><p>Mide la temperatura de 5 emociones ahora. No la que quisieras... la que realmente tienes. Si pones todo en 0 o 10, el sistema detectará que estás evitando.</p></div>
+<div class="cq"><span class="ei">🌡️</span> 0 = nada presente · 10 = muy presente</div>
+<div class="scon"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:1.5rem">😤</span><b>Orgullo</b><span style="color:var(--t3);font-size:.85rem;font-style:italic">— "Me cuesta pedir perdón"</span></div><div class="slabels"><span>Nada</span><span>Mucho</span></div><input type="range" class="sslider" min="0" max="10" value="5" oninput="this.nextElementSibling.textContent=this.value"><div class="sval">5</div></div>
+<div class="scon"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:1.5rem">😰</span><b>Miedo</b><span style="color:var(--t3);font-size:.85rem;font-style:italic">— "Evito temas por temor"</span></div><div class="slabels"><span>Nada</span><span>Mucho</span></div><input type="range" class="sslider" min="0" max="10" value="5" oninput="this.nextElementSibling.textContent=this.value"><div class="sval">5</div></div>
+<div class="scon"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:1.5rem">😒</span><b>Envidia</b><span style="color:var(--t3);font-size:.85rem;font-style:italic">— "Me molesta lo que otros logran"</span></div><div class="slabels"><span>Nada</span><span>Mucho</span></div><input type="range" class="sslider" min="0" max="10" value="5" oninput="this.nextElementSibling.textContent=this.value"><div class="sval">5</div></div>
+<div class="scon"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:1.5rem">😶</span><b>Inseguridad</b><span style="color:var(--t3);font-size:.85rem;font-style:italic">— "Necesito que me reafirmen"</span></div><div class="slabels"><span>Nada</span><span>Mucho</span></div><input type="range" class="sslider" min="0" max="10" value="5" oninput="this.nextElementSibling.textContent=this.value"><div class="sval">5</div></div>
+<div class="scon"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:1.5rem">🔥</span><b>Enojo</b><span style="color:var(--t3);font-size:.85rem;font-style:italic">— "Hay algo que no he expresado"</span></div><div class="slabels"><span>Nada</span><span>Mucho</span></div><input type="range" class="sslider" min="0" max="10" value="5" oninput="this.nextElementSibling.textContent=this.value"><div class="sval">5</div></div>
+<div class="btnc"><button class="btn btn-tm" onclick="startTm('r3c2',240)">▶ Iniciar Tiempo</button><button class="btn btn-sub" onclick="checkThermo()">Enviar Lectura</button></div>
+<div class="fb" id="fb-r3c2"></div>
+<div class="disc" style="display:none" id="ds-r3c2"><div class="dl">💑 Conversen en pareja</div><p class="dp">Compartan resultados. ¿Cuál marcó más alto? ¿Les sorprende la respuesta del otro?</p></div>
+</div>
+
+<!-- R3C3 -->
+<div class="ccard" id="r3c3" style="display:none">
+<div class="chdr"><span class="cbadge">🧩 Acertijo 3 de 3</span><div class="ctimer" id="tm-r3c3">⏱ 04:00</div></div>
+<h3 class="ctitle">La Confesión que Abre la Puerta</h3>
+<div class="subq"><p class="sql">Escena 1: Roberto critica el trabajo de su esposa. Dice que "quiere ayudarla". Cuando ella logra algo grande, cambia de tema.</p>
+<div class="ogrid"><button class="obtn" data-ok="0" data-g="r3c3a" onclick="selOpt(this,'r3c3a')"><span class="olet">A</span><span>Enojo</span></button><button class="obtn" data-ok="1" data-g="r3c3a" onclick="selOpt(this,'r3c3a')"><span class="olet">B</span><span>Envidia e inseguridad</span></button><button class="obtn" data-ok="0" data-g="r3c3a" onclick="selOpt(this,'r3c3a')"><span class="olet">C</span><span>Miedo</span></button></div></div>
+<div class="subq"><p class="sql">Escena 2: Patricia se niega a hablar de sentimientos. "Así soy yo." Pero si su pareja se abre con alguien más, se siente traicionada.</p>
+<div class="ogrid"><button class="obtn" data-ok="1" data-g="r3c3b" onclick="selOpt(this,'r3c3b')"><span class="olet">A</span><span>Miedo a la vulnerabilidad</span></button><button class="obtn" data-ok="0" data-g="r3c3b" onclick="selOpt(this,'r3c3b')"><span class="olet">B</span><span>Orgullo</span></button><button class="obtn" data-ok="0" data-g="r3c3b" onclick="selOpt(this,'r3c3b')"><span class="olet">C</span><span>Enojo</span></button></div></div>
+<div class="subq"><p class="sql">🔓 Tu confesión para abrir la puerta:</p><p class="sqi">"Una emoción que me cuesta admitir es __________ porque __________"</p>
+<textarea class="tinput" id="confess" placeholder="Escribe tu confesión honesta..." rows="3"></textarea></div>
+<div class="btnc"><button class="btn btn-tm" onclick="startTm('r3c3',240)">▶ Iniciar Tiempo</button><button class="btn btn-sub" onclick="checkR3C3()">Verificar y Abrir</button></div>
+<div class="fb" id="fb-r3c3"></div>
+<div class="disc" style="display:none" id="ds-r3c3"><div class="dl">💑 Conversen en pareja</div><p class="dp">Lean en voz alta lo que escribieron. Sin comentar. Solo escuchar. Luego digan: "Gracias por decírmelo."</p></div>
+</div>
+
+<div id="nx-r3" style="display:none;text-align:center;margin:30px 0"><button class="btn-e" onclick="goRoom(4)">🚪 Abrir Sala 4: Rompiendo las Excusas →</button></div>
+</div></div>
+
+<!-- =============== ROOM 4: ROMPIENDO LAS EXCUSAS =============== -->
+<div class="scr rscr rm4" id="room4">
+<div class="rhdr">
+<div class="rnum">Sala 04 de 04</div>
+<h2 class="rtl">💥 Rompiendo las Excusas</h2>
+<p class="rdesc">"No fue para tanto" · "El otro empezó" · "Así soy yo" — Las excusas son el último candado.</p>
+</div>
+<div class="rnarr"><p>Última sala. Paredes cubiertas de frases que repites. Parecen inofensivas. Pero cada una es un ladrillo que mantiene la puerta cerrada. Para salir, necesitas romperlas.</p></div>
+<div class="ccon">
+
+<!-- R4C1 -->
+<div class="ccard" id="r4c1">
+<div class="chdr"><span class="cbadge">🧩 Acertijo 1 de 3</span><div class="ctimer" id="tm-r4c1">⏱ 03:00</div></div>
+<h3 class="ctitle">El Muro de Excusas</h3>
+<div class="cstory"><p>Cada excusa esconde una verdad. Clasifica: ¿EXCUSA que desvía o VERDAD que conecta?</p></div>
+<div class="ditems" id="src-r4c1">
+<div class="sitem" draggable="true" data-id="e1" data-ans="excuse">"No fue para tanto"</div>
+<div class="sitem" draggable="true" data-id="e2" data-ans="truth">"Lo que dije te dolió y lo reconozco"</div>
+<div class="sitem" draggable="true" data-id="e3" data-ans="excuse">"Así soy yo, ya me conoces"</div>
+<div class="sitem" draggable="true" data-id="e4" data-ans="truth">"Me equivoqué y quiero hacerlo diferente"</div>
+<div class="sitem" draggable="true" data-id="e5" data-ans="excuse">"Tú también lo haces"</div>
+<div class="sitem" draggable="true" data-id="e6" data-ans="truth">"Tengo miedo de admitir que esto me afecta"</div>
+</div>
+<div class="scols">
+<div class="scol cexc"><div class="scolt">🧱 Excusa</div><div class="sdrop" data-col="excuse"></div></div>
+<div class="scol ctruth"><div class="scolt">💎 Verdad</div><div class="sdrop" data-col="truth"></div></div>
+</div>
+<div class="btnc"><button class="btn btn-tm" onclick="startTm('r4c1',180)">▶ Iniciar Tiempo</button><button class="btn btn-sub" onclick="checkSort('r4c1')">Verificar</button></div>
+<div class="fb" id="fb-r4c1"></div>
+<div class="disc" style="display:none" id="ds-r4c1"><div class="dl">💑 Conversen en pareja</div><p class="dp">¿Cuál excusa del muro han usado? Díganla en voz alta y tradúzcanla a la verdad.</p></div>
+</div>
+
+<!-- R4C2 -->
+<div class="ccard" id="r4c2" style="display:none">
+<div class="chdr"><span class="cbadge">🧩 Acertijo 2 de 3</span><div class="ctimer" id="tm-r4c2">⏱ 03:00</div></div>
+<h3 class="ctitle">El Rompecabezas de la Responsabilidad</h3>
+<div class="cstory">
+<p>Marcos le gritó a su pareja. Después dijo:</p>
+<p class="dlg">1. "Es que tú me provocas"<br>2. "No era mi intención"<br>3. "Perdón, no debí gritarte. Me dejé llevar y eso no está bien"<br>4. "No exageres, ni fue tan fuerte"<br>5. "El problema es que tú nunca escuchas"</p>
+</div>
+<div class="cq"><span class="ei">🧩</span> ¿Cuál frase muestra responsabilidad REAL?</div>
+<div class="ogrid" id="og-r4c2">
+<button class="obtn" data-ok="0" onclick="selOpt(this,'r4c2')"><span class="olet">A</span><span>Frase 1</span></button>
+<button class="obtn" data-ok="0" onclick="selOpt(this,'r4c2')"><span class="olet">B</span><span>Frase 2</span></button>
+<button class="obtn" data-ok="1" onclick="selOpt(this,'r4c2')"><span class="olet">C</span><span>Frase 3</span></button>
+<button class="obtn" data-ok="0" onclick="selOpt(this,'r4c2')"><span class="olet">D</span><span>Frase 4</span></button>
+<button class="obtn" data-ok="0" onclick="selOpt(this,'r4c2')"><span class="olet">E</span><span>Frase 5</span></button>
+</div>
+<div class="cq" style="margin-top:15px"><span class="ei">🔎</span> ¿Qué tienen en común las otras 4?</div>
+<div class="ogrid">
+<button class="obtn" data-ok="0" data-g="r4c2b" onclick="selOpt(this,'r4c2b')"><span class="olet">A</span><span>Son mentiras</span></button>
+<button class="obtn" data-ok="1" data-g="r4c2b" onclick="selOpt(this,'r4c2b')"><span class="olet">B</span><span>Desvían responsabilidad o minimizan el impacto</span></button>
+<button class="obtn" data-ok="0" data-g="r4c2b" onclick="selOpt(this,'r4c2b')"><span class="olet">C</span><span>Son formas de pedir perdón</span></button>
+</div>
+<div class="btnc"><button class="btn btn-tm" onclick="startTm('r4c2',180)">▶ Iniciar Tiempo</button><button class="btn btn-sub" onclick="checkR4C2()">Verificar</button></div>
+<div class="fb" id="fb-r4c2"></div>
+<div class="disc" style="display:none" id="ds-r4c2"><div class="dl">💑 Conversen en pareja</div><p class="dp">Piensen en la última vez que se disculparon. ¿Fue responsabilidad real o excusa disfrazada?</p></div>
+</div>
+
+<!-- R4C3 -->
+<div class="ccard" id="r4c3" style="display:none">
+<div class="chdr"><span class="cbadge">🧩 ACERTIJO FINAL</span><div class="ctimer" id="tm-r4c3">⏱ 03:00</div></div>
+<h3 class="ctitle">🔑 La Llave Final: Tu Verdad</h3>
+<div class="cstory"><p>La puerta final no tiene acertijo. Tiene un espacio en blanco. Solo se abre cuando escribes algo que has evitado decir.</p></div>
+<div style="margin-bottom:15px"><p style="font-weight:600;margin-bottom:8px">1. "Una excusa que siempre uso para evitar ser vulnerable es..."</p><textarea class="tinput" id="fq1" placeholder="Escribe aquí..." rows="2"></textarea></div>
+<div style="margin-bottom:15px"><p style="font-weight:600;margin-bottom:8px">2. "La verdad detrás de esa excusa es..."</p><textarea class="tinput" id="fq2" placeholder="Escribe aquí..." rows="2"></textarea></div>
+<div style="margin-bottom:15px"><p style="font-weight:600;margin-bottom:8px">3. "Algo que quiero decirle a mi pareja sin excusas es..."</p><textarea class="tinput" id="fq3" placeholder="Escribe aquí..." rows="2"></textarea></div>
+<div class="btnc"><button class="btn btn-tm" onclick="startTm('r4c3',180)">▶ Iniciar Tiempo</button><button class="btn btn-sub" onclick="checkFinal()">🔓 Abrir la Puerta Final</button></div>
+<div class="fb" id="fb-r4c3"></div>
+<div class="disc" style="display:none" id="ds-r4c3"><div class="dl">💑 Momento final en pareja</div><p class="dp">Lean en voz alta la frase 3. Mírense a los ojos. Sin responder. Solo recibir. Luego digan: "Gracias por ser honesto/a conmigo."</p></div>
+</div>
+
+<div id="nx-r4" style="display:none;text-align:center;margin:30px 0"><button class="btn-e" onclick="showFinal()">🫀 Ver Resultado Final →</button></div>
+</div></div>
+
+<!-- =============== FINAL =============== -->
+<div class="scr" id="final">
+<div class="fcon">
+<div class="fheart">💚</div>
+<h2 class="ftitle">Detox Completado</h2>
+<div class="fscore" id="fs">0</div>
+<div class="fsl">Puntos de Honestidad</div>
+<div class="fmsg">
+<p>Has recorrido las cuatro salas. No porque todo esté perfecto... sino porque <span class="hlf">elegiste ser honesto/a</span>.</p>
+<p>Un corazón limpio no es aquel que nunca se equivoca. Es aquel que tiene la capacidad de ser <span class="hlf">honesto y reconocer</span>. Es en ese preciso momento en el que empezamos a ver con claridad.</p>
+<p>Las interpretaciones, las máscaras, las emociones escondidas, las excusas... todo eso intoxica. Pero hoy diste el primer paso para sacarlas a la luz.</p>
+<p><b>Recuerda:</b> La honestidad no es un evento. Es una práctica diaria. Sigan practicándola juntos. 💚</p>
+</div>
+<button class="btn-re" onclick="location.reload()">🔄 Volver a Jugar</button>
+</div>
+</div>
+
+<!-- =============== JAVASCRIPT =============== -->
+<script>
+let score=0,timers={},done={1:0,2:0,3:0,4:0},total=0;
+
+// PARTICLES
+(function(){const c=document.getElementById('pts'),x=c.getContext('2d');let p=[];function r(){c.width=innerWidth;c.height=innerHeight}addEventListener('resize',r);r();for(let i=0;i<50;i++)p.push({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*2+.5,dx:(Math.random()-.5)*.3,dy:(Math.random()-.5)*.3,o:Math.random()*.3+.1});function d(){x.clearRect(0,0,c.width,c.height);p.forEach(q=>{x.beginPath();x.arc(q.x,q.y,q.r,0,Math.PI*2);x.fillStyle=`rgba(233,30,99,${q.o})`;x.fill();q.x+=q.dx;q.y+=q.dy;if(q.x<0||q.x>c.width)q.dx*=-1;if(q.y<0||q.y>c.height)q.dy*=-1});requestAnimationFrame(d)}d()})();
+
+// NAV
+function showScr(id){document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));document.getElementById(id).classList.add('on');scrollTo({top:0,behavior:'smooth'})}
+function startGame(){document.getElementById('pbar').style.display='block';document.getElementById('scoreUI').style.display='flex';document.getElementById('rnav').style.display='flex';updDots(1);showScr('room1')}
+function updDots(a){document.querySelectorAll('.rnav .dot').forEach(d=>{const r=+d.dataset.r;d.classList.remove('act','done');if(r===a)d.classList.add('act');else if(r<a)d.classList.add('done')})}
+function goRoom(n){const t={2:{i:'⚔️',t:'Entrando a: Versus',x:'Lo que dices no siempre es lo que sientes.'},3:{i:'🪞',t:'Entrando a: Lo que no te gusta admitir',x:'Ahora viene lo difícil. Nombrar lo que escondes.'},4:{i:'💥',t:'Entrando a: Rompiendo las Excusas',x:'La última sala. Solo la verdad te sacará.'}};const d=t[n],o=document.getElementById('trans');document.getElementById('ticon').textContent=d.i;document.getElementById('ttitle').textContent=d.t;document.getElementById('ttext').textContent=d.x;o.classList.add('on');setTimeout(()=>{o.classList.remove('on');showScr('room'+n);updDots(n);showUnlock()},2500)}
+function showUnlock(){const e=document.getElementById('unlock');e.classList.add('on');setTimeout(()=>e.classList.remove('on'),1500)}
+function showFinal(){const o=document.getElementById('trans');document.getElementById('ticon').textContent='💚';document.getElementById('ttitle').textContent='Detox Completo';document.getElementById('ttext').textContent='Tu corazón ya es más ligero.';o.classList.add('on');setTimeout(()=>{o.classList.remove('on');document.getElementById('pbar').style.display='none';document.getElementById('scoreUI').style.display='none';document.getElementById('rnav').style.display='none';document.getElementById('fs').textContent=score;showScr('final')},2500)}
+function updProg(){document.getElementById('pfill').style.width=(total/12*100)+'%'}
+function addPts(p){score+=p;document.getElementById('sv').textContent=score}
+
+// TIMER
+function startTm(id,sec){if(timers[id])return;let r=sec;const el=document.getElementById('tm-'+id);timers[id]=setInterval(()=>{r--;const m=Math.floor(r/60),s=r%60;el.textContent=`⏱ ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;el.classList.remove('warn','danger');if(r<=30)el.classList.add('danger');else if(r<=60)el.classList.add('warn');if(r<=0){clearInterval(timers[id]);el.textContent='⏱ 00:00';el.classList.add('danger')}},1000)}
+function stopTm(id){if(timers[id]){clearInterval(timers[id]);timers[id]=null}}
+
+// COMPLETE CHALLENGE
+function completeCh(id){const roomNum=id.charAt(1);done[roomNum]++;total++;updProg();const ds=document.getElementById('ds-'+id);if(ds)ds.style.display='block';if(done[roomNum]>=3){document.getElementById('nx-r'+roomNum).style.display='block'}else{const next=+id.charAt(3)+1;const nxt=document.getElementById(id.slice(0,3)+next);if(nxt)setTimeout(()=>{nxt.style.display='block';nxt.scrollIntoView({behavior:'smooth'})},1000)}}
+
+// SELECT OPTION
+function selOpt(btn,g){const p=btn.closest('.ogrid');p.querySelectorAll('.obtn').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel')}
+
+// SORTING (drag into columns)
+(function(){document.querySelectorAll('.sitem[draggable]').forEach(it=>{it.addEventListener('dragstart',e=>{e.dataTransfer.setData('id',it.dataset.id);e.dataTransfer.setData('ans',it.dataset.ans);e.dataTransfer.setData('text',it.textContent);setTimeout(()=>it.style.opacity='.4',0)});it.addEventListener('dragend',()=>it.style.opacity='1')});document.querySelectorAll('.sdrop').forEach(z=>{z.addEventListener('dragover',e=>{e.preventDefault();z.style.background='rgba(255,255,255,.05)'});z.addEventListener('dragleave',()=>z.style.background='');z.addEventListener('drop',e=>{e.preventDefault();z.style.background='';const id=e.dataTransfer.getData('id'),ans=e.dataTransfer.getData('ans'),txt=e.dataTransfer.getData('text');if(!z.querySelector(`[data-id="${id}"]`)){const d=document.createElement('div');d.className='sitem';d.textContent=txt;d.dataset.id=id;d.dataset.ans=ans;d.dataset.placed=z.dataset.col;z.appendChild(d);const orig=document.querySelector(`.ditems .sitem[data-id="${id}"]`);if(orig){orig.style.opacity='.3';orig.draggable=false}}})})})();
+
+function checkSort(cid){stopTm(cid);const card=document.getElementById(cid);let ok=0,tot=0;card.querySelectorAll('.sdrop .sitem').forEach(it=>{tot++;if(it.dataset.ans===it.dataset.placed){it.classList.add('oks');ok++}else it.classList.add('nos')});const allItems=card.querySelectorAll('.ditems .sitem').length;const fb=document.getElementById('fb-'+cid);if(ok===allItems){fb.className='fb show fbs';fb.innerHTML='<div class="fbt">🎉 ¡Excelente!</div><div class="fbx">Todas las frases clasificadas correctamente. Distinguir hechos de interpretaciones es el primer paso del detox.</div>';addPts(30)}else if(ok>=allItems/2){fb.className='fb show fbp';fb.innerHTML=`<div class="fbt">🔶 Casi... ${ok}/${allItems}</div><div class="fbx">Es normal mezclar hechos e interpretaciones. Por eso el corazón se intoxica sin que nos demos cuenta.</div>`;addPts(15)}else{fb.className='fb show fbf';fb.innerHTML=`<div class="fbt">🔴 ${ok}/${allItems}</div><div class="fbx">Reconocer la confusión ya es parte del detox. Sigue adelante.</div>`;addPts(5)}completeCh(cid)}
+
+// DRAG & DROP (into zones)
+(function(){document.querySelectorAll('.ditem').forEach(it=>{it.addEventListener('dragstart',e=>{e.dataTransfer.setData('match',it.dataset.match);e.dataTransfer.setData('text',it.textContent);it.classList.add('dragging')});it.addEventListener('dragend',()=>it.classList.remove('dragging'))});document.querySelectorAll('.dzone').forEach(z=>{z.addEventListener('dragover',e=>{e.preventDefault();z.classList.add('dov')});z.addEventListener('dragleave',()=>z.classList.remove('dov'));z.addEventListener('drop',e=>{e.preventDefault();z.classList.remove('dov');const m=e.dataTransfer.getData('match'),t=e.dataTransfer.getData('text');z.textContent=t;z.classList.add('filled');z.dataset.recv=m;const orig=document.querySelector(`.ditem[data-match="${m}"]`);if(orig)orig.classList.add('placed')})})})();
+
+function checkDD(pfx){stopTm(pfx);const zones=document.querySelectorAll(`[id^="dz-${pfx}-"]`);let ok=0,tot=zones.length;zones.forEach(z=>{const correct=z.dataset.recv===z.id;z.classList.add(correct?'okz':'noz');if(correct)ok++});const fb=document.getElementById('fb-'+pfx);if(ok===tot){fb.className='fb show fbs';fb.innerHTML='<div class="fbt">🎉 ¡Perfecto!</div><div class="fbx">Todas las conexiones correctas. Estás viendo con claridad.</div>';addPts(30)}else{fb.className='fb show fbp';fb.innerHTML=`<div class="fbt">🔶 ${ok}/${tot} correctas</div><div class="fbx">Reconocer emociones verdaderas es un proceso. Ya diste el primer paso.</div>`;addPts(ok*6)}completeCh(pfx)}
+
+// LOCK CODE
+function cycDig(el,max){let v=+el.textContent;v=(v+1)%(max+1);el.textContent=v}
+
+// SINGLE CHOICE
+function checkSingle(cid,expl){stopTm(cid);const sel=document.querySelector(`#og-${cid} .obtn.sel`);const fb=document.getElementById('fb-'+cid);if(!sel){fb.className='fb show fbf';fb.innerHTML='<div class="fbt">⚠️ Selecciona una opción</div><div class="fbx">No has seleccionado nada.</div>';return}const ok=sel.dataset.ok==='1';document.querySelectorAll(`#og-${cid} .obtn`).forEach(b=>{b.classList.add('dis');if(b.dataset.ok==='1')b.classList.add('ok');else if(b.classList.contains('sel'))b.classList.add('no')});if(ok){fb.className='fb show fbs';fb.innerHTML=`<div class="fbt">🎉 ¡Correcto!</div><div class="fbx">${expl}</div>`;addPts(25)}else{fb.className='fb show fbf';fb.innerHTML=`<div class="fbt">🔴 No exactamente</div><div class="fbx">${expl}</div>`;addPts(5)}completeCh(cid)}
+
+// MULTI GROUP
+function checkMulti(cid,groups){stopTm(cid);let ok=0;groups.forEach(g=>{const btns=document.querySelectorAll(`[data-g="${g}"]`);const sel=document.querySelector(`[data-g="${g}"].sel`);btns.forEach(b=>{b.classList.add('dis');if(b.dataset.ok==='1')b.classList.add('ok');else if(b.classList.contains('sel'))b.classList.add('no')});if(sel&&sel.dataset.ok==='1')ok++});const fb=document.getElementById('fb-'+cid);if(ok===groups.length){fb.className='fb show fbs';fb.innerHTML=`<div class="fbt">🎉 ¡Todas correctas!</div><div class="fbx">Tu capacidad de ver con claridad está mejorando.</div>`;addPts(30)}else if(ok>0){fb.className='fb show fbp';fb.innerHTML=`<div class="fbt">🔶 ${ok}/${groups.length} correctas</div><div class="fbx">Reconocer patrones es un proceso. Cada acierto cuenta.</div>`;addPts(ok*10)}else{fb.className='fb show fbf';fb.innerHTML=`<div class="fbt">🔴 A revisar</div><div class="fbx">No te preocupes. El detox empieza cuando reconocemos lo que no vemos.</div>`;addPts(5)}completeCh(cid)}
+
+// R1C2 SPECIAL
+function checkR1C2(){stopTm('r1c2');const dig=+document.getElementById('r1c2d').textContent;const sel=document.querySelector('#og-r1c2 .obtn.sel');const fb=document.getElementById('fb-r1c2');let pts=0;if(dig===0){document.getElementById('r1c2d').classList.add('okd');pts+=15}
+if(sel){document.querySelectorAll('#og-r1c2 .obtn').forEach(b=>{b.classList.add('dis');if(b.dataset.ok==='1')b.classList.add('ok');else if(b.classList.contains('sel'))b.classList.add('no')});if(sel.dataset.ok==='1')pts+=15}
+if(pts>=25){fb.className='fb show fbs';fb.innerHTML='<div class="fbt">🎉 ¡Excelente!</div><div class="fbx">Correcto: NINGUNO de los pensamientos era un hecho verificable. Ambos interpretaron sin verificar, y eso intoxicó la noche.</div>'}else if(pts>0){fb.className='fb show fbp';fb.innerHTML='<div class="fbt">🔶 Parcialmente correcto</div><div class="fbx">La clave: ningún pensamiento era hecho. Ambos interpretaron sin preguntar. Lo que intoxicó fue la suposición, no la situación.</div>'}else{fb.className='fb show fbf';fb.innerHTML='<div class="fbt">🔴 A revisar</div><div class="fbx">Respuesta del candado: 0 — ningún pensamiento era verificable. La intoxicación vino de interpretar sin preguntar.</div>'}
+addPts(Math.max(pts,5));completeCh('r1c2')}
+
+// R3C3 SPECIAL
+function checkR3C3(){stopTm('r3c3');let ok=0;const groups=['r3c3a','r3c3b'];groups.forEach(g=>{const btns=document.querySelectorAll(`[data-g="${g}"]`);const sel=document.querySelector(`[data-g="${g}"].sel`);btns.forEach(b=>{b.classList.add('dis');if(b.dataset.ok==='1')b.classList.add('ok');else if(b.classList.contains('sel'))b.classList.add('no')});if(sel&&sel.dataset.ok==='1')ok++});
+const conf=document.getElementById('confess').value.trim();const hasConf=conf.length>=10;const fb=document.getElementById('fb-r3c3');let pts=ok*10+(hasConf?15:0);
+if(ok===2&&hasConf){fb.className='fb show fbs';fb.innerHTML='<div class="fbt">🔓 ¡La puerta se abre!</div><div class="fbx">Escenas correctas y tu confesión fue honesta. Nombrar lo que escondes es el acto más valiente del detox.</div>'}else if(ok>0||hasConf){fb.className='fb show fbp';fb.innerHTML=`<div class="fbt">🔶 La puerta se abre parcialmente</div><div class="fbx">${!hasConf?'Escribiste muy poco en tu confesión. Intenta ser más honesto/a.':'Sigue practicando identificar emociones escondidas.'}</div>`}else{fb.className='fb show fbf';fb.innerHTML='<div class="fbt">🔴 La puerta está atorada</div><div class="fbx">Para abrirla necesitas responder las escenas y escribir una confesión real.</div>'}
+addPts(Math.max(pts,5));completeCh('r3c3')}
+
+// R4C2 SPECIAL
+function checkR4C2(){stopTm('r4c2');let pts=0;const sel1=document.querySelector('#og-r4c2 .obtn.sel');if(sel1){document.querySelectorAll('#og-r4c2 .obtn').forEach(b=>{b.classList.add('dis');if(b.dataset.ok==='1')b.classList.add('ok');else if(b.classList.contains('sel'))b.classList.add('no')});if(sel1.dataset.ok==='1')pts+=15}
+const sel2=document.querySelector('[data-g="r4c2b"].sel');if(sel2){document.querySelectorAll('[data-g="r4c2b"]').forEach(b=>{b.classList.add('dis');if(b.dataset.ok==='1')b.classList.add('ok');else if(b.classList.contains('sel'))b.classList.add('no')});if(sel2.dataset.ok==='1')pts+=15}
+const fb=document.getElementById('fb-r4c2');if(pts>=25){fb.className='fb show fbs';fb.innerHTML='<div class="fbt">🎉 ¡Correcto!</div><div class="fbx">Solo la frase 3 asume responsabilidad real. Las otras minimizan, culpan al otro o desvían. La responsabilidad real no tiene "pero".</div>'}else if(pts>0){fb.className='fb show fbp';fb.innerHTML='<div class="fbt">🔶 Parcial</div><div class="fbx">La frase 3 es la única con responsabilidad real: reconoce el error, nombra la causa y no culpa al otro.</div>'}else{fb.className='fb show fbf';fb.innerHTML='<div class="fbt">🔴 A revisar</div><div class="fbx">La responsabilidad real suena así: "No debí hacerlo. Me dejé llevar. Eso no está bien." Sin desviar.</div>'}
+addPts(Math.max(pts,5));completeCh('r4c2')}
+
+// FINAL CHALLENGE
+function checkFinal(){stopTm('r4c3');const q1=document.getElementById('fq1').value.trim();const q2=document.getElementById('fq2').value.trim();const q3=document.getElementById('fq3').value.trim();const fb=document.getElementById('fb-r4c3');const filled=[q1,q2,q3].filter(v=>v.length>=5).length;
+if(filled===3){fb.className='fb show fbs';fb.innerHTML='<div class="fbt">🔓 ¡LA PUERTA SE ABRIÓ!</div><div class="fbx">Lo lograste. No porque fuiste perfecto/a... sino porque fuiste honesto/a. Eso es exactamente lo que limpia el corazón. La verdad, dicha con valentía, es la mejor herramienta de detox que existe.</div>';addPts(40)}else if(filled>0){fb.className='fb show fbp';fb.innerHTML=`<div class="fbt">🔶 La puerta se está abriendo...</div><div class="fbx">Completaste ${filled} de 3 confesiones. Intenta ser más honesto/a en las que faltan. Cada verdad abre un cerrojo.</div>`;addPts(filled*10)}else{fb.className='fb show fbf';fb.innerHTML='<div class="fbt">🔴 La puerta no se abre</div><div class="fbx">Necesitas escribir algo real. No tiene que ser perfecto. Solo honesto.</div>';addPts(5)}
+completeCh('r4c3')}
+
+// THERMOMETER
+function checkThermo(){stopTm('r3c2');const sliders=document.querySelectorAll('#r3c2 .sslider');const vals=[];sliders.forEach(s=>vals.push(+s.value));const allSame=vals.every(v=>v===vals[0]);const allZero=vals.every(v=>v===0);const allTen=vals.every(v=>v===10);const fb=document.getElementById('fb-r3c2');
+if(allZero||allTen||allSame){fb.className='fb show fbf';fb.innerHTML='<div class="fbt">🔴 El sistema detectó evasión</div><div class="fbx">Todas las emociones en el mismo nivel no es honesto. Atrévete a diferenciar. Ajusta los termómetros con más honestidad.</div>';addPts(5)}else{const highest=Math.max(...vals);const hIdx=vals.indexOf(highest);const emotions=['Orgullo','Miedo','Envidia','Inseguridad','Enojo'];fb.className='fb show fbs';fb.innerHTML=`<div class="fbt">🌡️ Lectura completada</div><div class="fbx">Tu emoción más presente: <strong>${emotions[hIdx]}</strong> (nivel ${highest}/10). Reconocerla es el primer paso. No es algo malo — es información. Y la información honesta es lo que limpia el corazón.</div>`;addPts(25)}
+completeCh('r3c2')}
+</script>
 </body>
 </html>
