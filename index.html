@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Escape Room Funcional</title>
+<style>
+body {font-family: Arial; background:#111; color:#eee; text-align:center; padding:40px;}
+.screen {display:none;}
+.active {display:block;}
+button {padding:10px 20px; margin:10px;}
+</style>
+<script>
+function startEscapeRoom(){
+    document.getElementById('landing').classList.remove('active');
+    document.getElementById('room1').classList.add('active');
+}
+
+function nextRoom(current, next){
+    document.getElementById(current).classList.remove('active');
+    document.getElementById(next).classList.add('active');
+}
+</script>
+</head>
+<body>
+
+<div id="landing" class="screen active">
+<h1>Detox del Corazón</h1>
+<p>Si eres honesto... el camino aparecerá.</p>
+<button onclick="startEscapeRoom()">Iniciar</button>
+</div>
+
+<div id="room1" class="screen">
+<h2>Sala 1: Archivo Oculto</h2>
+<p>"Nunca me escucha" → ¿Hecho o interpretación?</p>
+<button onclick="nextRoom('room1','room2')">Siguiente</button>
+</div>
+
+<div id="room2" class="screen">
+<h2>Sala 2: Versus</h2>
+<p>¿Lo que dijiste es igual a lo que sentiste?</p>
+<button onclick="nextRoom('room2','room3')">Siguiente</button>
+</div>
+
+<div id="room3" class="screen">
+<h2>Sala 3: Emociones</h2>
+<p>Identifica: orgullo, miedo, enojo...</p>
+<button onclick="nextRoom('room3','room4')">Siguiente</button>
+</div>
+
+<div id="room4" class="screen">
+<h2>Sala 4: Rompiendo excusas</h2>
+<p>"No fue para tanto" → ¿verdad o excusa?</p>
+<h3>Fin 🎉</h3>
+</div>
+
+</body>
+</html>
